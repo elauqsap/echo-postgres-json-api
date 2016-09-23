@@ -1,0 +1,13 @@
+package: github.com/elauqsap/echo-postgres-json-api
+import:
+- package: github.com/bgentry/speakeasy
+- package: github.com/lib/pq
+- package: gopkg.in/urfave/cli.v1
+  version: ~1.18.1
+testImport:
+- package: github.com/labstack/echo
+  version: ~2.0.2
+- package: github.com/smartystreets/goconvey
+  version: ~1.6.2
+  subpackages:
+  - convey

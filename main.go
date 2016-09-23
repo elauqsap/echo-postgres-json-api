@@ -1,9 +1,13 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"os"
 
+	"github.com/bgentry/speakeasy"
 	"github.com/elauqsap/echo-postgres-json-api/api"
 
 	"gopkg.in/urfave/cli.v1" // imports as package "cli"
@@ -31,14 +35,6 @@ func main() {
 			Usage: "path to a valid config file (required)",
 		},
 	}
-	app.Before = func(c *cli.Context) error {
-		if c.GlobalIsSet("config") {
-			if Config = api.NewConfig(c.GlobalString("config")); Config != nil {
-				return nil
-			}
-		}
-		return errors.New("--config is required, check JSON format and file path")
-	}
 	app.Action = func(c *cli.Context) error {
 		if !c.Args().Present() && c.NumFlags() < 1 {
 			return cli.ShowAppHelp(c)
@@ -50,7 +46,28 @@ func main() {
 			Name:  "run",
 			Usage: "start the server",
 			Action: func(c *cli.Context) error {
+				if c.GlobalIsSet("config") {
+					if Config = api.NewConfig(c.GlobalString("config")); Config == nil {
+						return errors.New("--config is required, check JSON format and file path")
+					}
+				}
 				// configure and run the server here
+				return nil
+			},
+		},
+		{
+			Name:  "keygen",
+			Usage: "generate encrypted keys",
+			Action: func(c *cli.Context) error {
+				plain, _ := speakeasy.Ask("[!] Encrypt: ")
+				key := make([]byte, 32)
+				rand.Read(key)
+				if enc, err := encrypt(key, []byte(plain)); err == nil {
+					fmt.Println("[+] Key: " + base64.StdEncoding.EncodeToString(key))
+					fmt.Println("[+] Cipher: " + *enc)
+				} else {
+					return errors.New("[-] " + err.Error())
+				}
 				return nil
 			},
 		},

@@ -53,7 +53,7 @@ func (c Config) NewStore() (*Store, error) {
 		return nil, err
 	}
 	source := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%d sslmode=%s connect_timeout=%d", pg.A, pg.B, c.Name, c.Host, c.Port, c.SSL, c.ConnectTimeout)
-	db, err := sql.Open("Postgres", source)
+	db, err := sql.Open("postgres", source)
 	if err != nil {
 		return nil, err
 	}

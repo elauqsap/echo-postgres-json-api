@@ -6,8 +6,8 @@
     "log": "./echo-postgres-json-api/test.log"
   },
   "database": {
-    "a": "",
-    "b": "",
+    "a": "lwxZGXeuZXDK7isA+Exya9XiSVk8CX1qt19KN3HcfkY=",
+    "b": "4erXZX6KTbJ4UtJBLiynveRR4m33rqyyhP8CP+/Qag==",
     "name": "testdb",
     "host": "127.0.0.1",
     "port": 5432,

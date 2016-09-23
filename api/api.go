@@ -18,6 +18,14 @@ type (
 		} `json:"server"`
 		Database database.Config `json:"database"`
 	}
+	// Data ...
+	Data struct {
+		*database.Store
+	}
+	// Handlers ...
+	Handlers struct {
+		User UserCRUD
+	}
 )
 
 // NewConfig loads the configurations into a structure

@@ -1,0 +1,8 @@
+# Ignore
+domain.*
+*.log
+*.sql
+vendor/*
+
+# Ignore the go built binary
+echo-postgres-json-api
