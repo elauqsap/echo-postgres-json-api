@@ -13,7 +13,7 @@ type (
 )
 
 // CreateUser ...
-func (d *Data) CreateUser() error {
+func (d *Data) CreateUser(c echo.Context) error {
 	return nil
 }
 

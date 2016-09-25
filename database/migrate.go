@@ -33,7 +33,7 @@ var migrations = map[int]map[int]string{
 					first varchar(100) NOT NULL,
 					last varchar(100) NOT NULL,
 					role app.roles NOT NULL DEFAULT 'user',
-					api_key bytea NOT NULL UNIQUE
+					api_key char(32) NOT NULL UNIQUE
 			)`,
 	},
 	// index commands in the order to be performed

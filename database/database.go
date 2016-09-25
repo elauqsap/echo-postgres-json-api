@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -104,7 +105,7 @@ func (s *Store) Transact(txFunc func(*sql.Tx) error) (err error) {
 
 // Upsert performs an insert/upsert of the model into the
 // database depending on if a record is found
-func (s *Store) Upsert(c CRUD, v interface{}) (err error) {
+func (s *Store) Upsert(c CRUD, v *PropertyMap) (err error) {
 	if err = s.SingleRowTransact(c.Read(), v); err != nil {
 		// Record was not found, create it
 		err = s.ExecTransact(c.Create())
@@ -116,6 +117,33 @@ func (s *Store) Upsert(c CRUD, v interface{}) (err error) {
 		}
 	}
 	return err
+}
+
+// Value ...
+func (p PropertyMap) Value() (driver.Value, error) {
+	j, err := json.Marshal(p)
+	return j, err
+}
+
+// Scan ...
+func (p *PropertyMap) Scan(src interface{}) error {
+	source, ok := src.([]byte)
+	if !ok {
+		return errors.New("Type assertion .([]byte) failed.")
+	}
+
+	var i interface{}
+	err := json.Unmarshal(source, &i)
+	if err != nil {
+		return err
+	}
+
+	*p, ok = i.(map[string]interface{})
+	if !ok {
+		return errors.New("Type assertion .(map[string]interface{}) failed.")
+	}
+
+	return nil
 }
 
 // Reverse performs reverse encryption of the user:pass

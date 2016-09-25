@@ -12,6 +12,14 @@ const (
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
+const (
+	// USER ...
+	USER = `user`
+	// MANAGER ...
+	MANAGER = `manager`
+	// ADMIN ...
+	ADMIN = `admin`
+)
 
 type (
 	// User ...
@@ -27,12 +35,12 @@ type (
 // Create ...
 func (u *User) Create() string {
 	u.GenerateKey(32)
-	return fmt.Sprintf("INSERT INTO app.users (first,last,role,key) VALUES ('%s','%s','%s','%s')", u.First, u.Last, u.Role, u.Key)
+	return fmt.Sprintf("INSERT INTO app.users (first,last,role,api_key) VALUES ('%s','%s','%s','%s')", u.First, u.Last, u.Role, u.Key)
 }
 
 // Read ...
 func (u *User) Read() string {
-	return fmt.Sprintf("SELECT ROW_TO_JSON(user) FROM (SELECT (id,first,last,role) FROM app.users WHERE id='%d') as user", u.ID)
+	return fmt.Sprintf("SELECT ROW_TO_JSON(u) FROM (SELECT * FROM app.users WHERE id='%d') as u", u.ID)
 }
 
 // Update ...

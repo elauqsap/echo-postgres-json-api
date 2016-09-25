@@ -28,14 +28,14 @@ type (
 	}
 	HandlerTest struct {
 		Title string
-		Func  func(*echo.Echo) func()
+		Func  func(*echo.Echo, Handlers) func()
 	}
 )
 
 var Conf Config
 var Store *database.Store
 
-func TestDatabase(t *testing.T) {
+func TestAPI(t *testing.T) {
 	Convey("The API Should", t, func() {
 		Convey("Be Configurable From A JSON File", func() {
 			data, err := ioutil.ReadFile("../configs/example.config.json")
