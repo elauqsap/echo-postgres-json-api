@@ -1,6 +1,6 @@
 {
   "server": {
-    "bind": "127.0.0.1:8080",
+    "bind": "127.0.0.1:8081",
     "cert": "./echo-postgres-json-api/domain.crt",
     "key": "./echo-postgres-json-api/domain.key",
     "log": "./echo-postgres-json-api/test.log"

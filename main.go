@@ -9,6 +9,8 @@ import (
 
 	"github.com/bgentry/speakeasy"
 	"github.com/elauqsap/echo-postgres-json-api/api"
+	"github.com/labstack/echo/engine"
+	"github.com/labstack/echo/engine/standard"
 
 	"gopkg.in/urfave/cli.v1" // imports as package "cli"
 )
@@ -52,6 +54,13 @@ func main() {
 					}
 				}
 				// configure and run the server here
+				server, err := Config.NewServer()
+				if err != nil {
+					return err
+				}
+				server.Run(standard.WithConfig(engine.Config{
+					Address: Config.Server.Bind,
+				}))
 				return nil
 			},
 		},

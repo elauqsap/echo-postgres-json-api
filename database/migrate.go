@@ -30,8 +30,8 @@ var migrations = map[int]map[int]string{
 	mTABLE: map[int]string{
 		0: `CREATE TABLE IF NOT EXISTS app.users (
 					id SERIAL PRIMARY KEY,
-					first varchar(100) NOT NULL,
-					last varchar(100) NOT NULL,
+					first varchar(100) NOT NULL CHECK (first <> ''),
+					last varchar(100) NOT NULL CHECK (last <> ''),
 					role app.roles NOT NULL DEFAULT 'user',
 					api_key char(32) NOT NULL UNIQUE
 			)`,

@@ -119,6 +119,16 @@ func (s *Store) Upsert(c CRUD, v *PropertyMap) (err error) {
 	return err
 }
 
+// Merge performs an update of the model into the
+// database depending on if a record is found
+func (s *Store) Merge(c CRUD, v *PropertyMap) (err error) {
+	if err = s.SingleRowTransact(c.Read(), v); err == nil {
+		// Record was found, merge and update it
+		err = s.ExecTransact(c.Update(v))
+	}
+	return err
+}
+
 // Value ...
 func (p PropertyMap) Value() (driver.Value, error) {
 	j, err := json.Marshal(p)

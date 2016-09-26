@@ -3,8 +3,11 @@ package api
 import (
 	"encoding/json"
 	"io/ioutil"
+	"os"
 
 	"github.com/elauqsap/echo-postgres-json-api/database"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 )
 
 type (
@@ -36,4 +39,27 @@ func NewConfig(path string) (conf *Config) {
 		return nil
 	}
 	return conf
+}
+
+// NewServer returns a configured api server instance
+func (c *Config) NewServer() (*echo.Echo, error) {
+	e := echo.New()
+	if logFile, err := os.OpenFile(c.Server.LogPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660); err != nil {
+		e.Use(middleware.Logger())
+	} else {
+		e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{Output: logFile}))
+	}
+	e.Use(middleware.Recover())
+	api := e.Group("/api/v1")
+	if store, err := c.Database.NewStore(); err == nil {
+		data := &Data{store}
+		handlers := &Handlers{User: data}
+		api.POST("/user", handlers.User.CreateUser)
+		api.GET("/user", handlers.User.ReadUser)
+		api.PUT("/user", handlers.User.UpdateUser)
+		api.DELETE("/user", handlers.User.DeleteUser)
+	} else {
+		return nil, err
+	}
+	return e, nil
 }

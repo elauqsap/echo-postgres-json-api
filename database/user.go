@@ -35,6 +35,9 @@ type (
 // Create ...
 func (u *User) Create() string {
 	u.GenerateKey(32)
+	if len(u.Role) <= 0 {
+		u.Role = USER
+	}
 	return fmt.Sprintf("INSERT INTO app.users (first,last,role,api_key) VALUES ('%s','%s','%s','%s')", u.First, u.Last, u.Role, u.Key)
 }
 
@@ -44,8 +47,8 @@ func (u *User) Read() string {
 }
 
 // Update ...
-func (u *User) Update(x interface{}) string {
-	// We don't have anything to merge so ignore x
+func (u *User) Update(v interface{}) string {
+	// no merging needed to ignore v
 	return fmt.Sprintf("UPDATE app.users SET first='%s',last='%s',role='%s' WHERE id='%d'", u.First, u.Last, u.Role, u.ID)
 }
 
