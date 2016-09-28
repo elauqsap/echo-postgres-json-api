@@ -13,6 +13,6 @@ A recent project of mine required me to develop a JSON API. Since Go is my curre
 | [CLI](https://gopkg.in/urfave/cli.v1) | CLI Interface |
 
 ##### Blog Posts
-* [How To Build a RESTful JSON API in Go - Testing Part I]()
+* [How To Build a RESTful JSON API in Go - Testing Part I](http://blog.elauqsap.com/blog/2016/09/27/how-to-build-a-restful-json-api-in-go-testing-part-i/)
 * [How To Build a RESTful JSON API in Go - Database Part II]()
 * [How To Build a RESTful JSON API in Go - API PART III]()
