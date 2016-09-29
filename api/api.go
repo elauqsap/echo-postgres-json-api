@@ -21,11 +21,11 @@ type (
 		} `json:"server"`
 		Database database.Config `json:"database"`
 	}
-	// Data ...
+	// Data embeds the backend so we can implement pointer methods for the API
 	Data struct {
 		*database.Store
 	}
-	// Handlers ...
+	// Handlers are the HTTP handlers to be used by the API router
 	Handlers struct {
 		User UserCRUD
 	}

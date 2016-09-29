@@ -30,20 +30,25 @@ type (
 		SSL            string `json:"ssl_mode"`
 		ConnectTimeout int    `json:"connect_timeout"`
 	}
+	// CRUD interface implies the functions that need to be implemented
+	// by a model in order to be used by the injected method receivers
+	CRUD interface {
+		Create() Statement
+		Read() Statement
+		Update(interface{}) Statement
+		Delete() Statement
+	}
+	// PropertyMap allows to map and store JSON data with Postgres
+	PropertyMap map[string]interface{}
+	// Statement holds a SQL query and the params for exec/query
+	Statement struct {
+		Query string
+		Args  []interface{}
+	}
 	// Store embeds an instance of a sql.DB so we can
 	// inject new method receivers
 	Store struct {
 		*sql.DB
-	}
-	// PropertyMap allows to map and store JSON data with Postgres
-	PropertyMap map[string]interface{}
-	// CRUD interface implies the functions that need to be implemented
-	// by a model in order to be used by the injected method receivers
-	CRUD interface {
-		Create() string
-		Read() string
-		Update(interface{}) string
-		Delete() string
 	}
 )
 
@@ -72,10 +77,21 @@ func (s *Store) ExecTransact(query string) error {
 	})
 }
 
-// SingleRowTransact performs a sql.QueryRow with a transaction
-func (s *Store) SingleRowTransact(query string, v interface{}) error {
+// EWT is execute with transaction
+func (s *Store) EWT(st Statement) error {
 	return s.Transact(func(tx *sql.Tx) error {
-		return tx.QueryRow(query).Scan(v)
+		res, err := tx.Exec(st.Query, st.Args...)
+		if aff, _ := res.RowsAffected(); aff < 1 {
+			return errors.New("no change during execution")
+		}
+		return err
+	})
+}
+
+// QWT is query with transaction
+func (s *Store) QWT(st Statement, v interface{}) error {
+	return s.Transact(func(tx *sql.Tx) error {
+		return tx.QueryRow(st.Query, st.Args...).Scan(v)
 	})
 }
 
@@ -103,39 +119,13 @@ func (s *Store) Transact(txFunc func(*sql.Tx) error) (err error) {
 	return txFunc(tx)
 }
 
-// Upsert performs an insert/upsert of the model into the
-// database depending on if a record is found
-func (s *Store) Upsert(c CRUD, v *PropertyMap) (err error) {
-	if err = s.SingleRowTransact(c.Read(), v); err != nil {
-		// Record was not found, create it
-		err = s.ExecTransact(c.Create())
-	} else {
-		// Record was found, merge and update it
-		var data []byte
-		if data, err = json.Marshal(v); err == nil {
-			err = s.ExecTransact(c.Update(data))
-		}
-	}
-	return err
-}
-
-// Merge performs an update of the model into the
-// database depending on if a record is found
-func (s *Store) Merge(c CRUD, v *PropertyMap) (err error) {
-	if err = s.SingleRowTransact(c.Read(), v); err == nil {
-		// Record was found, merge and update it
-		err = s.ExecTransact(c.Update(v))
-	}
-	return err
-}
-
-// Value ...
+// Value map to a sql driver value
 func (p PropertyMap) Value() (driver.Value, error) {
 	j, err := json.Marshal(p)
 	return j, err
 }
 
-// Scan ...
+// Scan map from sql return to a PropertyMap
 func (p *PropertyMap) Scan(src interface{}) error {
 	source, ok := src.([]byte)
 	if !ok {

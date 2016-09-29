@@ -31,7 +31,7 @@ func (d *Data) CreateUser(c echo.Context) error {
 		})
 	}
 	user := &database.User{First: bind.First, Last: bind.Last, Role: bind.Role}
-	if err := d.ExecTransact(user.Create()); err != nil {
+	if err := d.EWT(user.Create()); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"code":    1011,
 			"message": "user could not be created",
@@ -56,7 +56,7 @@ func (d *Data) ReadUser(c echo.Context) error {
 		})
 	}
 	user := &database.User{ID: bind.ID}
-	if err := d.SingleRowTransact(user.Read(), pm); err != nil {
+	if err := d.QWT(user.Read(), pm); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"code":    1012,
 			"message": "user id does not exist",
@@ -82,9 +82,8 @@ func (d *Data) UpdateUser(c echo.Context) error {
 			"message": "invalid user or json format in request body",
 		})
 	}
-	pm := new(database.PropertyMap)
 	user := &database.User{ID: bind.ID, First: bind.First, Last: bind.Last, Role: bind.Role}
-	if err := d.Merge(user, pm); err != nil {
+	if err := d.EWT(user.Update(nil)); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"code":    1013,
 			"message": "user could not be updated",
@@ -108,7 +107,7 @@ func (d *Data) DeleteUser(c echo.Context) error {
 		})
 	}
 	user := &database.User{ID: bind.ID}
-	if err := d.ExecTransact(user.Delete()); err != nil {
+	if err := d.EWT(user.Delete()); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"code":    1014,
 			"message": "user could not be deleted",

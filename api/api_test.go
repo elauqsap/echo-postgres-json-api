@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -56,7 +55,11 @@ func TestAPI(t *testing.T) {
 				Role:  "admin",
 				Key:   "WDpaAirzlzWCfuuMlexarniCdKIPeocr",
 			}
-			So(Store.ExecTransact(fmt.Sprintf("INSERT INTO app.users (first,last,role,api_key) VALUES ('%s','%s','%s','%s')", user1.First, user1.Last, user1.Role, user1.Key)), ShouldBeNil)
+			st := database.Statement{
+				Query: "INSERT INTO app.users (first,last,role,api_key) VALUES ($1,$2,$3,$4)",
+				Args:  []interface{}{user1.First, user1.Last, user1.Role, user1.Key},
+			}
+			So(Store.EWT(st), ShouldBeNil)
 		})
 		for _, api := range [][]HandlerTest{UserAPI} {
 			for _, test := range api {

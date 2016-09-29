@@ -119,7 +119,7 @@ var UserAPI = []HandlerTest{
 				e:            e,
 				url:          `/api/v1/user`,
 				method:       echo.PUT,
-				content:      `{"first":"xyz","id":1000,"last":"abc","role":"manager"}`,
+				content:      `{"first":"xxyyzz","id":1000,"last":"abc","role":"manager"}`,
 				handler:      h.User.UpdateUser,
 				expectedCode: http.StatusBadRequest,
 				expectedBody: `{"code":1013,"message":"user could not be updated"}`,

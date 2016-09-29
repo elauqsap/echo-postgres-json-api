@@ -20,10 +20,10 @@ var UserTest = ModelTest{
 			Convey("Implement The CRUD Interface", func() {
 				So(&User{}, ShouldImplement, (*CRUD)(nil))
 				Convey("A User Can Be Created", func() {
-					So(store.Upsert(user, new(PropertyMap)), ShouldBeNil)
+					So(store.EWT(user.Create()), ShouldBeNil)
 					read := new(User)
 					pm := new(PropertyMap)
-					So(store.SingleRowTransact(user.Read(), pm), ShouldBeNil)
+					So(store.QWT(user.Read(), pm), ShouldBeNil)
 					data, err := json.Marshal(pm)
 					So(err, ShouldBeNil)
 					So(json.Unmarshal(data, read), ShouldBeNil)
@@ -32,7 +32,7 @@ var UserTest = ModelTest{
 				Convey("A User Can Be Read", func() {
 					pm := new(PropertyMap)
 					read := new(User)
-					So(store.SingleRowTransact(user.Read(), pm), ShouldBeNil)
+					So(store.QWT(user.Read(), pm), ShouldBeNil)
 					data, err := json.Marshal(pm)
 					So(err, ShouldBeNil)
 					So(json.Unmarshal(data, read), ShouldBeNil)
@@ -40,10 +40,10 @@ var UserTest = ModelTest{
 				})
 				Convey("A User Can Be Updated", func() {
 					user.Role = ADMIN
-					So(store.Upsert(user, new(PropertyMap)), ShouldBeNil)
+					So(store.EWT(user.Update(new(PropertyMap))), ShouldBeNil)
 					read := new(User)
 					pm := new(PropertyMap)
-					So(store.SingleRowTransact(user.Read(), pm), ShouldBeNil)
+					So(store.QWT(user.Read(), pm), ShouldBeNil)
 					data, err := json.Marshal(pm)
 					So(err, ShouldBeNil)
 					So(json.Unmarshal(data, read), ShouldBeNil)
@@ -51,8 +51,8 @@ var UserTest = ModelTest{
 				})
 				Convey("A User Can Be Deleted", func() {
 					pm := new(PropertyMap)
-					So(store.ExecTransact(user.Delete()), ShouldBeNil)
-					So(store.SingleRowTransact(user.Read(), pm).Error(), ShouldEqual, "sql: no rows in result set")
+					So(store.EWT(user.Delete()), ShouldBeNil)
+					So(store.QWT(user.Read(), pm).Error(), ShouldEqual, "sql: no rows in result set")
 				})
 			})
 		}

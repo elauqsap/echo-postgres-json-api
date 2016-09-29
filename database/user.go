@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 )
@@ -13,16 +12,16 @@ const (
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
 const (
-	// USER ...
+	// USER level role
 	USER = `user`
-	// MANAGER ...
+	// MANAGER level role
 	MANAGER = `manager`
-	// ADMIN ...
+	// ADMIN level role
 	ADMIN = `admin`
 )
 
 type (
-	// User ...
+	// User models the app.users table
 	User struct {
 		ID    int    `json:"id"`
 		First string `json:"first"`
@@ -32,32 +31,44 @@ type (
 	}
 )
 
-// Create ...
-func (u *User) Create() string {
+// Create builds the Statement to insert a user into the database
+func (u *User) Create() Statement {
 	u.GenerateKey(32)
 	if len(u.Role) <= 0 {
 		u.Role = USER
 	}
-	return fmt.Sprintf("INSERT INTO app.users (first,last,role,api_key) VALUES ('%s','%s','%s','%s')", u.First, u.Last, u.Role, u.Key)
+	return Statement{
+		"INSERT INTO app.users (first,last,role,api_key) VALUES ($1,$2,$3,$4)",
+		[]interface{}{u.First, u.Last, u.Role, u.Key},
+	}
 }
 
-// Read ...
-func (u *User) Read() string {
-	return fmt.Sprintf("SELECT ROW_TO_JSON(u) FROM (SELECT * FROM app.users WHERE id='%d') as u", u.ID)
+// Read creates the Statement to read a user from the database
+func (u *User) Read() Statement {
+	return Statement{
+		"SELECT ROW_TO_JSON(u) FROM (SELECT * FROM app.users WHERE id = $1) AS u",
+		[]interface{}{u.ID},
+	}
 }
 
-// Update ...
-func (u *User) Update(v interface{}) string {
+// Update creates the Statement to update a user in the database
+func (u *User) Update(v interface{}) Statement {
 	// no merging needed to ignore v
-	return fmt.Sprintf("UPDATE app.users SET first='%s',last='%s',role='%s' WHERE id='%d'", u.First, u.Last, u.Role, u.ID)
+	return Statement{
+		"UPDATE app.users SET first = $1,last = $2,role = $3 WHERE id = $4",
+		[]interface{}{u.First, u.Last, u.Role, u.ID},
+	}
 }
 
-// Delete ...
-func (u *User) Delete() string {
-	return fmt.Sprintf("DELETE FROM app.users WHERE id='%d'", u.ID)
+// Delete creates the Statement to delete a user from the database
+func (u *User) Delete() Statement {
+	return Statement{
+		"DELETE FROM app.users WHERE id = $1",
+		[]interface{}{u.ID},
+	}
 }
 
-// GenerateKey ...
+// GenerateKey creates a unique api key for each user
 func (u *User) GenerateKey(n int) {
 	var src = rand.NewSource(time.Now().UnixNano())
 	b := make([]byte, n)
