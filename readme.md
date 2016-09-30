@@ -14,5 +14,5 @@ A recent project of mine required me to develop a JSON API. Since Go is my curre
 
 ##### Blog Posts
 * [How To Build a RESTful JSON API in Go - Testing Part I](http://blog.elauqsap.com/blog/2016/09/27/how-to-build-a-restful-json-api-in-go-testing-part-i/)
-* [How To Build a RESTful JSON API in Go - Database Part II]()
-* [How To Build a RESTful JSON API in Go - API PART III]()
+* [How To Build a RESTful JSON API in Go - Database Part II](http://blog.elauqsap.com/blog/2016/09/29/how-to-build-a-restful-json-api-in-go-database-part-ii/)
+* [How To Build a RESTful JSON API in Go - API Part III]()
