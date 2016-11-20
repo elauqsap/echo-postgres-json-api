@@ -2,6 +2,9 @@ package api
 
 import (
 	"net/http"
+	"strconv"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/elauqsap/echo-postgres-json-api/database"
 	"github.com/labstack/echo"
@@ -20,9 +23,8 @@ type (
 // CreateUser ...
 func (d *Data) CreateUser(c echo.Context) error {
 	bind := struct {
-		First string `json:"first"`
-		Last  string `json:"last"`
-		Role  string `json:"role"`
+		Login    string `json:"login"`
+		Password string `json:"password"`
 	}{}
 	if err := c.Bind(&bind); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
@@ -30,8 +32,15 @@ func (d *Data) CreateUser(c echo.Context) error {
 			"message": "invalid user or json format in request body",
 		})
 	}
-	user := &database.User{First: bind.First, Last: bind.Last, Role: bind.Role}
-	if err := d.EWT(user.Create()); err != nil {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(bind.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"code":    1010,
+			"message": "invalid user or json format in request body",
+		})
+	}
+	user := &database.User{Login: bind.Login, Password: hashed}
+	if err := d.Execute(user.Create()); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"code":    1011,
 			"message": "user could not be created",
@@ -46,17 +55,9 @@ func (d *Data) CreateUser(c echo.Context) error {
 // ReadUser ...
 func (d *Data) ReadUser(c echo.Context) error {
 	pm := new(database.PropertyMap)
-	bind := struct {
-		ID int `json:"id"`
-	}{}
-	if err := c.Bind(&bind); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"code":    1010,
-			"message": "invalid user or json format in request body",
-		})
-	}
-	user := &database.User{ID: bind.ID}
-	if err := d.QWT(user.Read(), pm); err != nil {
+	id, _ := strconv.Atoi(c.Param("id"))
+	user := &database.User{ID: id}
+	if err := d.Query(user.Read(), pm); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"code":    1012,
 			"message": "user id does not exist",
@@ -71,19 +72,36 @@ func (d *Data) ReadUser(c echo.Context) error {
 // UpdateUser ...
 func (d *Data) UpdateUser(c echo.Context) error {
 	bind := struct {
-		ID    int    `json:"id"`
-		First string `json:"first"`
-		Last  string `json:"last"`
-		Role  string `json:"role"`
+		Login    string `json:"login,omitempty"`
+		Password string `json:"password,omitempty"`
+		JWT      string `json:"jwt,omitempty"`
 	}{}
+	id, _ := strconv.Atoi(c.Param("id"))
 	if err := c.Bind(&bind); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"code":    1010,
 			"message": "invalid user or json format in request body",
 		})
 	}
-	user := &database.User{ID: bind.ID, First: bind.First, Last: bind.Last, Role: bind.Role}
-	if err := d.EWT(user.Update(nil)); err != nil {
+	pairs := make(map[string]interface{})
+	if len(bind.Login) > 0 {
+		pairs["login"] = bind.Login
+	}
+	if len(bind.Password) > 0 {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(bind.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"code":    1010,
+				"message": "invalid user or json format in request body",
+			})
+		}
+		pairs["password"] = hashed
+	}
+	if len(bind.JWT) > 0 {
+		pairs["jwt"] = bind.JWT
+	}
+	st := database.UpBuilder("users", "id", id, pairs)
+	if _, err := d.Exec(st.Query, st.Args...); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"code":    1013,
 			"message": "user could not be updated",
@@ -97,22 +115,22 @@ func (d *Data) UpdateUser(c echo.Context) error {
 
 // DeleteUser ...
 func (d *Data) DeleteUser(c echo.Context) error {
-	bind := struct {
-		ID int `json:"id"`
-	}{}
-	if err := c.Bind(&bind); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"code":    1010,
-			"message": "invalid user or json format in request body",
-		})
-	}
-	user := &database.User{ID: bind.ID}
-	if err := d.EWT(user.Delete()); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"code":    1014,
-			"message": "user could not be deleted",
-		})
-	}
+	// bind := struct {
+	// 	ID int `json:"id"`
+	// }{}
+	// if err := c.Bind(&bind); err != nil {
+	// 	return c.JSON(http.StatusBadRequest, map[string]interface{}{
+	// 		"code":    1010,
+	// 		"message": "invalid user or json format in request body",
+	// 	})
+	// }
+	// user := &database.User{ID: bind.ID}
+	// if err := d.Execute(user.Delete()); err != nil {
+	// 	return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+	// 		"code":    1014,
+	// 		"message": "user could not be deleted",
+	// 	})
+	// }
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"code":    1003,
 		"message": "user successfully deleted",

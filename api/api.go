@@ -1,8 +1,7 @@
 package api
 
 import (
-	"encoding/json"
-	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/elauqsap/echo-postgres-json-api/database"
@@ -11,19 +10,17 @@ import (
 )
 
 type (
-	// Config for the server and database
+	// Config ...
 	Config struct {
-		Server struct {
-			Bind    string `json:"bind"`
-			Cert    string `json:"cert"`
-			Key     string `json:"key"`
-			LogPath string `json:"log,omitempty"`
-		} `json:"server"`
-		Database database.Config `json:"database"`
+		Bind  string `json:"bind"`
+		Cert  string `json:"cert"`
+		Key   string `json:"key"`
+		Token string `json:"token"`
 	}
 	// Data embeds the backend so we can implement pointer methods for the API
 	Data struct {
 		*database.Store
+		*log.Logger
 	}
 	// Handlers are the HTTP handlers to be used by the API router
 	Handlers struct {
@@ -31,35 +28,20 @@ type (
 	}
 )
 
-// NewConfig loads the configurations into a structure
-// to be used as a global operator at runtime
-func NewConfig(path string) (conf *Config) {
-	data, _ := ioutil.ReadFile(path)
-	if err := json.Unmarshal(data, &conf); err != nil {
-		return nil
-	}
-	return conf
-}
-
-// NewServer returns a configured api server instance
-func (c *Config) NewServer() (*echo.Echo, error) {
+// New returns a configured api server instance
+func (c *Config) New(sfile *os.File, dfile *os.File, store *database.Store) (*echo.Echo, error) {
 	e := echo.New()
-	if logFile, err := os.OpenFile(c.Server.LogPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660); err != nil {
-		e.Use(middleware.Logger())
-	} else {
-		e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{Output: logFile}))
-	}
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{Output: sfile}))
 	e.Use(middleware.Recover())
 	api := e.Group("/api/v1")
-	if store, err := c.Database.NewStore(); err == nil {
-		data := &Data{store}
-		handlers := &Handlers{User: data}
-		api.POST("/user", handlers.User.CreateUser)
-		api.GET("/user", handlers.User.ReadUser)
-		api.PUT("/user", handlers.User.UpdateUser)
-		api.DELETE("/user", handlers.User.DeleteUser)
-	} else {
-		return nil, err
-	}
+	// api.Use(middleware.JWTWithConfig(middleware.JWTConfig{
+	// 	SigningKey: []byte(c.Token),
+	// }))
+	data := &Data{store, log.New(dfile, "", log.Ldate|log.Ltime|log.Lshortfile)}
+	handlers := &Handlers{User: data}
+	api.POST("/user", handlers.User.CreateUser)
+	api.GET("/user/:id", handlers.User.ReadUser)
+	api.PUT("/user/:id", handlers.User.UpdateUser)
+	api.DELETE("/user/:id", handlers.User.DeleteUser)
 	return e, nil
 }

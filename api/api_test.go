@@ -3,8 +3,10 @@ package api
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -17,10 +19,7 @@ import (
 type (
 	TestCase struct {
 		e            *echo.Echo
-		url          string
-		method       string
-		content      string
-		key          string
+		request      request
 		handler      func(c echo.Context) error
 		expectedCode int
 		expectedBody string
@@ -31,35 +30,47 @@ type (
 	}
 )
 
-var Conf Config
-var Store *database.Store
+type request struct {
+	url         string
+	method      string
+	content     string
+	paramNames  []string
+	paramValues []string
+}
+
+// config contains the global settings for the server and database
+type config struct {
+	Server   Config          `json:"server"`
+	Database database.Config `json:"database"`
+}
+
+var conf config
+var store *database.Store
 
 func TestAPI(t *testing.T) {
 	Convey("The API Should", t, func() {
 		Convey("Be Configurable From A JSON File", func() {
 			data, err := ioutil.ReadFile("../configs/example.config.json")
 			So(err, ShouldBeNil)
-			So(json.Unmarshal(data, &Conf), ShouldBeNil)
-			So(Conf, ShouldNotBeEmpty)
-			Store, err = Conf.Database.NewStore()
+			So(json.Unmarshal(data, &conf), ShouldBeNil)
+			So(conf, ShouldNotBeEmpty)
+			store, err = conf.Database.New()
 			So(err, ShouldBeNil)
-			So(Store, ShouldNotBeNil)
-			So(Store.Migrate(false), ShouldBeNil)
+			So(store, ShouldNotBeNil)
+			So(store.SetSchema(), ShouldBeNil)
 		})
-		data := &Data{Store}
+		data := &Data{store, log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)}
 		handlers := &Handlers{User: data}
 		Convey("Seed Initial Test Users", func() {
 			user1 := &database.User{
-				First: "abc",
-				Last:  "xyz",
-				Role:  "admin",
-				Key:   "WDpaAirzlzWCfuuMlexarniCdKIPeocr",
+				Login:    "user@test.com",
+				Password: []byte("$2a$10$WqfTERA.eAu.0e5hXp2A7.7g84/qr7VA3qWjooT/Y3eGRIt0xYz9S"),
 			}
 			st := database.Statement{
-				Query: "INSERT INTO app.users (first,last,role,api_key) VALUES ($1,$2,$3,$4)",
-				Args:  []interface{}{user1.First, user1.Last, user1.Role, user1.Key},
+				Query: "INSERT INTO app.users (login,password,jwt) VALUES ($1,$2,$3)",
+				Args:  []interface{}{user1.Login, user1.Password, database.ToNullString(user1.JWT)},
 			}
-			So(Store.EWT(st), ShouldBeNil)
+			So(store.Execute(st), ShouldBeNil)
 		})
 		for _, api := range [][]HandlerTest{UserAPI} {
 			for _, test := range api {
@@ -73,12 +84,14 @@ func ExpectedResponse(test TestCase) func() {
 	var req *http.Request
 	var err error
 	return func() {
-		req, err = http.NewRequest(test.method, test.url, strings.NewReader(test.content))
+		req, err = http.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.content))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		So(err, ShouldBeNil)
 		Convey("Accept Them via The Model Handler", func() {
 			rec := httptest.NewRecorder()
 			context := test.e.NewContext(standard.NewRequest(req, test.e.Logger()), standard.NewResponse(rec, test.e.Logger()))
+			context.SetParamNames(test.request.paramNames...)
+			context.SetParamValues(test.request.paramValues...)
 			err = test.handler(context)
 			So(err, ShouldBeNil)
 			Convey("And Receive Expected Response & Body", func() {

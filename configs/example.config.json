@@ -3,11 +3,13 @@
     "bind": "127.0.0.1:8081",
     "cert": "./echo-postgres-json-api/domain.crt",
     "key": "./echo-postgres-json-api/domain.key",
-    "log": "./echo-postgres-json-api/test.log"
+    "token": "secret"
   },
   "database": {
-    "a": "lwxZGXeuZXDK7isA+Exya9XiSVk8CX1qt19KN3HcfkY=",
-    "b": "4erXZX6KTbJ4UtJBLiynveRR4m33rqyyhP8CP+/Qag==",
+    "protected": {
+      "key": "lwxZGXeuZXDK7isA+Exya9XiSVk8CX1qt19KN3HcfkY=",
+      "cipher": "4erXZX6KTbJ4UtJBLiynveRR4m33rqyyhP8CP+/Qag=="
+    },
     "name": "testdb",
     "host": "127.0.0.1",
     "port": 5432,

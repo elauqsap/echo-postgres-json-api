@@ -2,28 +2,30 @@ package main
 
 import (
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 
-	"github.com/bgentry/speakeasy"
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/elauqsap/echo-postgres-json-api/api"
+	"github.com/elauqsap/echo-postgres-json-api/database"
+	"github.com/elauqsap/echo-postgres-json-api/reverse"
 	"github.com/labstack/echo/engine"
 	"github.com/labstack/echo/engine/standard"
 
 	"gopkg.in/urfave/cli.v1" // imports as package "cli"
 )
 
-// TODO: Implement Migrations
-// TODO: Implement User Model
-// TODO: Test Database
-// TODO: Implement User API
-// TODO: Test API
-// IDEA: Blog About This =)
+// config contains the global settings for the server and database
+type config struct {
+	Server   api.Config      `json:"server"`
+	Database database.Config `json:"database"`
+}
 
-// Config contains the global settings for the server and database
-var Config *api.Config
+var conf config
 
 func main() {
 	app := cli.NewApp()
@@ -45,21 +47,26 @@ func main() {
 	}
 	app.Commands = []cli.Command{
 		{
-			Name:  "run",
-			Usage: "start the server",
+			Name:   "run",
+			Usage:  "start the server",
+			Before: load,
 			Action: func(c *cli.Context) error {
-				if c.GlobalIsSet("config") {
-					if Config = api.NewConfig(c.GlobalString("config")); Config == nil {
-						return errors.New("--config is required, check JSON format and file path")
-					}
+				store, _ := conf.Database.New()
+				dfile, err := os.OpenFile("./db.log", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
+				if err != nil {
+					return err
+				}
+				sfile, err := os.OpenFile("./app.log", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
+				if err != nil {
+					return err
 				}
 				// configure and run the server here
-				server, err := Config.NewServer()
+				server, err := conf.Server.New(sfile, dfile, store)
 				if err != nil {
 					return err
 				}
 				server.Run(standard.WithConfig(engine.Config{
-					Address: Config.Server.Bind,
+					Address: conf.Server.Bind,
 				}))
 				return nil
 			},
@@ -68,12 +75,13 @@ func main() {
 			Name:  "keygen",
 			Usage: "generate encrypted keys",
 			Action: func(c *cli.Context) error {
-				plain, _ := speakeasy.Ask("[!] Encrypt: ")
+				fmt.Print("Enter Password: ")
+				pass, _ := terminal.ReadPassword(0)
 				key := make([]byte, 32)
 				rand.Read(key)
-				if enc, err := encrypt(key, []byte(plain)); err == nil {
-					fmt.Println("[+] Key: " + base64.StdEncoding.EncodeToString(key))
-					fmt.Println("[+] Cipher: " + *enc)
+				if enc, err := reverse.Encrypt(key, pass); err == nil {
+					fmt.Println("[+] Key: " + enc.Key)
+					fmt.Println("[+] Cipher: " + enc.Cipher)
 				} else {
 					return errors.New("[-] " + err.Error())
 				}
@@ -83,4 +91,16 @@ func main() {
 	}
 
 	app.Run(os.Args)
+}
+
+// loads the configurations into a structure
+// to be used as a global operator at runtime
+func load(c *cli.Context) error {
+	if c.GlobalIsSet("config") {
+		data, _ := ioutil.ReadFile(c.GlobalString("config"))
+		if err := json.Unmarshal(data, &conf); err != nil {
+			return errors.New("--config is required, check JSON format and file path")
+		}
+	}
+	return nil
 }
